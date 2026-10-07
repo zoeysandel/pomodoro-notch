@@ -29,7 +29,7 @@ The bundled demo app has an **ad hoc signature**. It has not been signed with an
 
 ### Build from source
 
-Install Xcode or the Xcode Command Line Tools. If you already installed the downloaded plugin, run `codex plugin remove pomodoro-notch@pomodoro-demo` first so the next install copies the locally built app. Your saved timer data is kept. Then:
+Install Xcode or the Xcode Command Line Tools. If you already installed the GitHub plugin, quit the companion, run `codex plugin remove pomodoro-notch@pomodoro-demo`, then `codex plugin marketplace remove pomodoro-demo` before switching to the local source below. Your saved timer data is kept. Then:
 
 ```sh
 git clone https://github.com/zoeysandel/pomodoro-notch.git
@@ -103,10 +103,17 @@ The UI has been inspected on the author’s Mac. A full VoiceOver session, measu
 
 ## Updates and uninstall
 
-This demo’s install commands pin the marketplace to `v0.2.4`. To follow future demo versions on the main branch:
+This demo’s install commands pin the marketplace to `v0.2.4`. To switch an existing pinned installation to a newer tag or to the main branch, remove its marketplace registration before adding the changed source. To follow the main branch:
 
 ```sh
+codex plugin marketplace remove pomodoro-demo
 codex plugin marketplace add zoeysandel/pomodoro-notch --ref main
+codex plugin add pomodoro-notch@pomodoro-demo
+```
+
+For later updates while already following main:
+
+```sh
 codex plugin marketplace upgrade pomodoro-demo
 codex plugin add pomodoro-notch@pomodoro-demo
 ```
