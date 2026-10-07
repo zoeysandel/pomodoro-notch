@@ -1,0 +1,12 @@
+{
+  "name": "pomodoro-demo",
+  "interface": {"displayName": "Pomodoro Demo"},
+  "plugins": [
+    {
+      "name": "pomodoro-notch",
+      "source": {"source": "local", "path": "./plugins/pomodoro-notch"},
+      "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+      "category": "Productivity"
+    }
+  ]
+}

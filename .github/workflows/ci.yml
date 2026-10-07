@@ -1,0 +1,21 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Test timer and duration parsing
+        run: swift test -c release --scratch-path "$RUNNER_TEMP/pomodoro-tests"
+      - name: Build and verify native app
+        env:
+          POMODORO_WORK_ROOT: ${{ runner.temp }}/pomodoro-build
+        run: ./script/build.sh

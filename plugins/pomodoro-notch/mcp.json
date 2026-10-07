@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "pomodoro-notch": {
+      "type": "stdio",
+      "command": "${PLUGIN_ROOT}/scripts/launch_mcp",
+      "args": [],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

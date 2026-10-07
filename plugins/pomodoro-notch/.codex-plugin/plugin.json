@@ -1,0 +1,33 @@
+{
+  "name": "pomodoro-notch",
+  "version": "0.2.3",
+  "description": "A local Pomodoro timer with a native macOS notch overlay, controlled from Codex.",
+  "author": {
+    "name": "Zoey Sandel"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/zoeysandel/pomodoro-notch",
+  "repository": "https://github.com/zoeysandel/pomodoro-notch",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Pomodoro Notch",
+    "shortDescription": "Focus from your Mac's notch",
+    "longDescription": "Start a 25-minute focus session from Codex. A native macOS overlay shows the timer around the notch, with pause, resume and break controls. The companion keeps time independently of the chat and restores the current session after relaunch. Local proof of concept for Apple Silicon Macs running macOS 14 or later.",
+    "developerName": "Zoey Sandel",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Start a pomodoro for my presentation.",
+      "How much focus time is left?",
+      "Start a five-minute break."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": ["./assets/interface.png"],
+    "brandColor": "#FF9F33"
+  }
+}

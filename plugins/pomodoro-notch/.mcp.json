@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "pomodoro-notch": {
+      "title": "Pomodoro Notch",
+      "description": "Local tools controlling a native macOS Pomodoro notch timer.",
+      "command": "./scripts/launch_mcp",
+      "args": [],
+      "cwd": ".",
+      "startup_timeout_sec": 15
+    }
+  }
+}
