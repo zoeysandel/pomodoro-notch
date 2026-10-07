@@ -69,13 +69,22 @@ def call(request, launch=True):
 
 if __name__ == "__main__":
     import argparse
+    from duration import MAX_SECONDS, parse_clock
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["status", "start", "pause", "resume", "stop", "break", "show", "hide", "quit"])
     parser.add_argument("--task")
-    parser.add_argument("--seconds", type=int)
+    duration_arguments = parser.add_mutually_exclusive_group()
+    duration_arguments.add_argument("--seconds", type=int)
+    duration_arguments.add_argument("--duration", help="Exact minutes:seconds, e.g. 421:09")
     parser.add_argument("--replace", action="store_true")
     parser.add_argument("--no-launch", action="store_true")
     options = parser.parse_args()
+    if options.duration is not None:
+        options.seconds = parse_clock(options.duration)
+        if options.seconds is None:
+            parser.error("Use a positive duration in minutes:seconds, e.g. 421:09")
+    if options.seconds is not None and not 1 <= options.seconds <= MAX_SECONDS:
+        parser.error("Duration must be from 1 to " + str(MAX_SECONDS) + " seconds")
     request = {"action": options.action}
     if options.task is not None:
         request["task"] = options.task

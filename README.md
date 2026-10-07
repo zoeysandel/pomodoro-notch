@@ -13,7 +13,7 @@ This is a **macOS proof of concept**, distributed through a custom GitHub market
 You need Codex CLI and `/usr/bin/python3` 3.9 or later. Python is provided by Apple’s Xcode Command Line Tools. If those tools are missing, install them with `xcode-select --install` and finish Apple’s installation dialog.
 
 ```sh
-codex plugin marketplace add zoeysandel/pomodoro-notch --ref v0.2.3
+codex plugin marketplace add zoeysandel/pomodoro-notch --ref v0.2.4
 codex plugin add pomodoro-notch@pomodoro-demo
 ```
 
@@ -34,7 +34,7 @@ Install Xcode or the Xcode Command Line Tools. If you already installed the down
 ```sh
 git clone https://github.com/zoeysandel/pomodoro-notch.git
 cd pomodoro-notch
-git checkout v0.2.3
+git checkout v0.2.4
 ./script/build.sh
 codex plugin marketplace add .
 codex plugin add pomodoro-notch@pomodoro-demo
@@ -49,6 +49,7 @@ For development, use `POMODORO_BUILD_CONFIGURATION=debug ./script/build.sh`. Set
 Ask in chat:
 
 - “Start a 25-minute focus session.”
+- “Start a focus timer for 421:09.” (421 minutes and 9 seconds.)
 - “Pause my pomodoro.”
 - “How much focus time is left?”
 - “Resume my timer.”
@@ -58,13 +59,15 @@ Ask in chat:
 In the native interface:
 
 - The green circular button starts or resumes; orange pauses.
-- Click the ready clock to set a duration in **mm:ss**, from one second to 180 minutes. Presets include 15, 25, 45 and 60 minutes. Enter or **Set** confirms and saves the choice.
+- Click the ready clock to set a duration in **minutes or mm:ss**, including long sessions such as **421:09**. The minimum is one second. Presets include 15, 25, 45 and 60 minutes. Enter or **Set** confirms and saves the choice.
 - **Add task** opens an optional inline editor. Enter saves and Escape cancels. The pencil edits a task without restarting the timer.
 - The chevron expands or collapses the controls. On a notched screen, the collapsed timer stays within the notch header.
 - **End** stops a session; **Hide** hides the ready overlay. The menu bar offers **Show timer**, **Hide overlay** and **Quit Pomodoro Notch**.
 - Completion reveals the controls and plays a short sound. A break starts only when requested or clicked.
 
-There are seven MCP tools: `pomodoro_start`, `pomodoro_status`, `pomodoro_pause`, `pomodoro_resume`, `pomodoro_stop`, `pomodoro_break` and `pomodoro_show`. Chat tool durations use whole minutes; the native editor supports seconds. A start without an explicit duration uses the saved native focus duration, initially 25 minutes. An active session is never replaced unless explicitly requested.
+There are seven MCP tools: `pomodoro_start`, `pomodoro_status`, `pomodoro_pause`, `pomodoro_resume`, `pomodoro_stop`, `pomodoro_break` and `pomodoro_show`. Start and break accept one of `duration` in **mm:ss** (e.g. `"421:09"`), `seconds` as an exact integer, or `minutes` as whole minutes. The previous 180-minute limit is removed; durations are bounded to 2,147,483,647 seconds to keep numeric input and saved sessions valid. A start without an explicit duration uses the saved native focus duration, initially 25 minutes. An active session is never replaced unless explicitly requested.
+
+If the MCP tools have not loaded in a desktop chat with terminal access, the skill can use the bundled local client with `start --duration "421:09"`. It talks to the same native owner and preserves the same protection against replacing an active session. Without terminal access, reload plugins or open a new chat.
 
 ## How it works
 
@@ -89,6 +92,7 @@ The native app stores the current task, timer session and duration preference in
 
 ```sh
 swift test
+/usr/bin/python3 -B -m unittest discover -s Tests/MCPTests
 ./script/build.sh
 /usr/bin/python3 -B script/smoke_test.py
 ```
@@ -99,7 +103,7 @@ The UI has been inspected on the author’s Mac. A full VoiceOver session, measu
 
 ## Updates and uninstall
 
-This demo’s install commands pin the marketplace to `v0.2.3`. To follow future demo versions on the main branch:
+This demo’s install commands pin the marketplace to `v0.2.4`. To follow future demo versions on the main branch:
 
 ```sh
 codex plugin marketplace add zoeysandel/pomodoro-notch --ref main

@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 """Small JSON-RPC stdio MCP server delegating to the native timer owner."""
 import json
+import re
 import sys
 from client import call
+from duration import CLOCK_PATTERN, MAX_SECONDS, parse_clock
 
 EMPTY = {"type": "object", "properties": {}, "additionalProperties": False}
+DURATION_PROPERTIES = {
+    "duration": {"type": "string", "maxLength": 32, "pattern": "^" + CLOCK_PATTERN + "$",
+                 "description": "Exact duration in minutes:seconds, e.g. 421:09. Use only one of duration, seconds or minutes."},
+    "seconds": {"type": "integer", "minimum": 1, "maximum": MAX_SECONDS,
+                "description": "Exact total seconds. Use only one of duration, seconds or minutes."},
+    "minutes": {"type": "integer", "minimum": 1, "maximum": MAX_SECONDS // 60,
+                "description": "Whole minutes. For seconds, use duration or seconds instead. Use only one duration field."}
+}
 
 
 def tool(name, description, schema=EMPTY, read_only=False):
@@ -13,18 +23,18 @@ def tool(name, description, schema=EMPTY, read_only=False):
 
 
 TOOLS = [
-    tool("start", "Start a focus session and show its native macOS notch timer. Without minutes, uses the saved native focus duration, initially 25 minutes. An active session is never replaced unless replace=true.",
+    tool("start", "Start a focus session and show its native macOS notch timer. Supports exact minutes:seconds (e.g. duration='421:09'), total seconds or whole minutes. Without a duration, uses the saved native focus duration, initially 25 minutes. An active session is never replaced unless replace=true.",
          {"type": "object", "properties": {
              "task": {"type": "string", "maxLength": 160, "description": "The one thing to focus on."},
-             "minutes": {"type": "integer", "minimum": 1, "maximum": 180},
+             **DURATION_PROPERTIES,
              "replace": {"type": "boolean", "default": False}}, "additionalProperties": False}),
     tool("status", "Read the current Pomodoro session and remaining time. Opens the local companion if it is not running.", read_only=True),
     tool("pause", "Pause the running Pomodoro timer without losing remaining time."),
     tool("resume", "Resume a paused Pomodoro timer."),
     tool("stop", "End the current session and return the native timer to its ready state."),
-    tool("break", "Start a break session, normally 5 minutes. Keeps the previous task title. Does not replace an active session unless replace=true.",
+    tool("break", "Start a break session, normally 5 minutes. Supports an exact minutes:seconds duration, total seconds or whole minutes. Keeps the previous task title. Does not replace an active session unless replace=true.",
          {"type": "object", "properties": {
-             "minutes": {"type": "integer", "minimum": 1, "maximum": 60, "default": 5},
+             **DURATION_PROPERTIES,
              "replace": {"type": "boolean", "default": False}}, "additionalProperties": False}),
     tool("show", "Show and expand the native Pomodoro timer without changing the session.")
 ]
@@ -48,7 +58,7 @@ def dispatch(message):
         supported = {"2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"}
         version = params.get("protocolVersion")
         result = {"protocolVersion": version if version in supported else "2025-03-26",
-                  "capabilities": {"tools": {}}, "serverInfo": {"name": "pomodoro-notch", "version": "0.2.3"},
+                  "capabilities": {"tools": {}}, "serverInfo": {"name": "pomodoro-notch", "version": "0.2.4"},
                   "instructions": "The native macOS companion owns the timer. Use start, pause, resume, status, stop, break or show. No account or network is required."}
     elif method == "ping":
         result = {}
@@ -68,13 +78,26 @@ def dispatch(message):
         for key, value in arguments.items():
             spec = properties[key]
             if spec["type"] == "integer" and (type(value) is not int or not spec["minimum"] <= value <= spec["maximum"]):
-                return rpc_error(identifier, -32602, "Invalid minutes")
+                return rpc_error(identifier, -32602, "Invalid " + key)
             if spec["type"] == "boolean" and type(value) is not bool:
                 return rpc_error(identifier, -32602, "Invalid replace flag")
-            if spec["type"] == "string" and (not isinstance(value, str) or len(value) > spec["maxLength"] or any(ord(c) < 32 or ord(c) == 127 for c in value)):
-                return rpc_error(identifier, -32602, "Invalid task")
+            if spec["type"] == "string":
+                if not isinstance(value, str) or len(value) > spec["maxLength"] or any(ord(c) < 32 or ord(c) == 127 for c in value):
+                    return rpc_error(identifier, -32602, "Invalid " + key)
+                if "pattern" in spec and re.fullmatch(spec["pattern"], value) is None:
+                    return rpc_error(identifier, -32602, "Use minutes:seconds, e.g. 421:09")
+        duration_fields = set(arguments) & set(DURATION_PROPERTIES)
+        if len(duration_fields) > 1:
+            return rpc_error(identifier, -32602, "Provide only one of duration, seconds or minutes")
         request = {"action": name.removeprefix("pomodoro_")}
-        if "minutes" in arguments:
+        if "duration" in arguments:
+            duration_seconds = parse_clock(arguments["duration"])
+            if duration_seconds is None:
+                return rpc_error(identifier, -32602, "Duration must be from 1 to " + str(MAX_SECONDS) + " seconds")
+            request["durationSeconds"] = duration_seconds
+        elif "seconds" in arguments:
+            request["durationSeconds"] = arguments["seconds"]
+        elif "minutes" in arguments:
             request["durationSeconds"] = arguments["minutes"] * 60
         for field in ("task", "replace"):
             if field in arguments:

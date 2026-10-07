@@ -32,13 +32,13 @@ private struct TimerPreferences: Codable {
            let saved = try? JSONDecoder().decode(TimerPreferences.self, from: data) {
             if let seconds = saved.focusDurationSeconds, FocusDuration.range.contains(seconds) {
                 focusDurationSeconds = seconds
-            } else if let minutes = saved.focusMinutes, (1...180).contains(minutes) {
+            } else if let minutes = saved.focusMinutes, (1...FocusDuration.maximumMinutes).contains(minutes) {
                 focusDurationSeconds = minutes * 60
             }
         }
         if let data = try? Data(contentsOf: stateURL),
            let saved = try? JSONDecoder().decode(Session.self, from: data),
-           saved.duration.isFinite, saved.duration >= 1, saved.duration <= 10_800,
+           saved.duration.isFinite, (Double(FocusDuration.range.lowerBound)...Double(FocusDuration.range.upperBound)).contains(saved.duration),
            saved.remaining.isFinite, saved.remaining >= 0, saved.remaining <= saved.duration,
            saved.phase != .running || saved.deadline != nil {
             session = saved
@@ -218,9 +218,9 @@ private struct TimerPreferences: Codable {
             guard let number = (request["durationSeconds"] ?? request["minutes"]) as? NSNumber,
                   CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.doubleValue.isFinite, number.doubleValue.rounded() == number.doubleValue,
-                  (1...(usesSeconds ? 10_800 : 180)).contains(number.intValue),
-                  number.doubleValue >= 1, number.doubleValue <= (usesSeconds ? 10_800 : 180) else {
-                return failure("Focus duration must be from 1 second to 180 minutes")
+                  number.doubleValue >= 1,
+                  number.doubleValue <= Double(usesSeconds ? FocusDuration.range.upperBound : FocusDuration.maximumMinutes) else {
+                return failure("Use a whole duration from 1 to \(FocusDuration.range.upperBound) seconds")
             }
             guard updateFocusDuration(seconds: number.intValue * (usesSeconds ? 1 : 60)) else {
                 return failure("Set the duration before starting a focus session")
@@ -249,9 +249,10 @@ private struct TimerPreferences: Codable {
             var seconds = action == "break" ? 300.0 : Double(focusDurationSeconds)
             if let raw = request["durationSeconds"] {
                 guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
-                      number.doubleValue.isFinite, (1...10_800).contains(number.doubleValue),
+                      number.doubleValue.isFinite,
+                      (Double(FocusDuration.range.lowerBound)...Double(FocusDuration.range.upperBound)).contains(number.doubleValue),
                       number.doubleValue.rounded() == number.doubleValue else {
-                    return failure("Duration must be a whole number from 1 to 10800 seconds")
+                    return failure("Use a whole duration from 1 to \(FocusDuration.range.upperBound) seconds")
                 }
                 seconds = number.doubleValue
             }

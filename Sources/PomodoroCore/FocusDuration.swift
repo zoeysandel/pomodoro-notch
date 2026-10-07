@@ -1,7 +1,8 @@
 import Foundation
 
 public enum FocusDuration {
-    public static let range = 1...10_800
+    public static let range = 1...Int(Int32.max)
+    public static let maximumMinutes = range.upperBound / 60
 
     /// A plain number means minutes; mm:ss also allows sessions under a minute.
     public static func parse(_ text: String) -> Int? {
@@ -9,7 +10,7 @@ public enum FocusDuration {
             .split(separator: ":", omittingEmptySubsequences: false)
         guard (1...2).contains(parts.count),
               parts.allSatisfy({ !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) } }),
-              let minutes = Int(parts[0]), (0...180).contains(minutes) else { return nil }
+              let minutes = Int(parts[0]), (0...maximumMinutes).contains(minutes) else { return nil }
         let seconds: Int
         if parts.count == 2 {
             guard let value = Int(parts[1]), (0...59).contains(value) else { return nil }

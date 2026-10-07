@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "pomodoro-notch",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A local Pomodoro timer with a native macOS notch overlay, controlled from Codex.",
   "author": {
     "name": "Zoey Sandel"
@@ -14,7 +14,7 @@
       "interface": {
         "displayName": "Pomodoro Notch",
         "shortDescription": "Focus from your Mac's notch",
-        "longDescription": "Start a 25-minute focus session from Codex. A native macOS overlay shows the timer around the notch, with pause, resume and break controls. The companion keeps time independently of the chat and restores the current session after relaunch. Local proof of concept for Apple Silicon Macs running macOS 14 or later.",
+        "longDescription": "Start a focus session with a custom duration in minutes and seconds from Codex. A native macOS overlay shows the timer around the notch, with pause, resume and break controls. The companion keeps time independently of the chat and restores the current session after relaunch. Local proof of concept for Apple Silicon Macs running macOS 14 or later.",
         "developerName": "Zoey Sandel",
         "category": "Productivity",
         "capabilities": [

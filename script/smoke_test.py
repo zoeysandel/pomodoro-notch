@@ -44,15 +44,15 @@ try:
     check(short["display"] == "00:30" and send({"action": "start"})["session"]["durationSeconds"] == 30,
           "a duration under one minute starts with second precision")
     send({"action": "stop"})
-    configured = send({"action": "setDuration", "durationSeconds": 1050})["session"]
-    check(configured["display"] == "17:30" and configured["focusDurationSeconds"] == 1050,
-          "custom duration updates the ready clock in minutes and seconds")
+    configured = send({"action": "setDuration", "durationSeconds": 25269})["session"]
+    check(configured["display"] == "421:09" and configured["focusDurationSeconds"] == 25269,
+          "custom duration over 180 minutes updates the ready clock with exact seconds")
     check(not send({"action": "setDuration", "minutes": True})["ok"]
-          and not send({"action": "setDuration", "minutes": 181})["ok"]
-          and not send({"action": "setDuration", "durationSeconds": 10801})["ok"],
+          and not send({"action": "setDuration", "minutes": 35791395})["ok"]
+          and not send({"action": "setDuration", "durationSeconds": 2147483648})["ok"],
           "custom duration rejects invalid values")
     custom = send({"action": "start", "task": "Configured duration"})["session"]
-    check(custom["durationSeconds"] == 1050, "native start uses the configured focus duration")
+    check(custom["durationSeconds"] == 25269, "native start uses the configured focus duration")
     check(not send({"action": "setDuration", "minutes": 25})["ok"],
           "duration cannot change a running timer")
     send({"action": "stop"})
@@ -82,7 +82,53 @@ try:
     check(init["result"]["capabilities"]["tools"] == {}, "MCP initialization advertises tools")
     server.stdin.write('{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
     server.stdin.flush()
-    check(len(rpc("tools/list")["result"]["tools"]) == 7, "all seven tools are discoverable")
+    discovered = rpc("tools/list")["result"]["tools"]
+    check(len(discovered) == 7, "all seven tools are discoverable")
+    check({"minutes", "seconds", "duration"}.issubset(discovered[0]["inputSchema"]["properties"]),
+          "MCP advertises custom durations in minutes, seconds and mm:ss")
+    command = [sys.executable, "-B", str(plugin / "scripts/client.py"), "start", "--duration", "421:09"]
+    local_start = json.loads(subprocess.run(command, capture_output=True, text=True, check=True).stdout)
+    check(local_start["ok"] and local_start["session"]["durationSeconds"] == 25269,
+          "local CLI fallback starts the exact custom duration")
+    tool("stop")
+    exact = tool("start", {"task": "Exact long timer", "duration": "421:09"})["structuredContent"]
+    check(exact["ok"] and exact["session"]["durationSeconds"] == 25269 and exact["session"]["display"] == "421:09",
+          "MCP starts 421:09 without rounding or substituting a default")
+    paused = tool("pause")["structuredContent"]["session"]
+    long_id = paused["sessionID"]
+    rejected = tool("start", {"duration": "00:30"})
+    unchanged = tool("status")["structuredContent"]["session"]
+    check(rejected["isError"] and unchanged["sessionID"] == long_id and unchanged["remainingSeconds"] == paused["remainingSeconds"],
+          "custom duration cannot replace an active session")
+    local_rejected = subprocess.run(command, capture_output=True, text=True)
+    check(local_rejected.returncode == 1 and not json.loads(local_rejected.stdout)["ok"]
+          and send({"action": "status"})["session"]["sessionID"] == long_id,
+          "local CLI fallback also protects an active session")
+    send({"action": "quit"})
+    time.sleep(0.5)
+    restored_long = call({"action": "status"})["session"]
+    check(restored_long["sessionID"] == long_id and restored_long["phase"] == "paused"
+          and restored_long["remainingSeconds"] == paused["remainingSeconds"]
+          and restored_long["focusDurationSeconds"] == 25269,
+          "long paused session and exact duration preference survive native relaunch")
+    resumed_long = tool("resume")["structuredContent"]["session"]
+    send({"action": "quit"})
+    time.sleep(0.5)
+    restored_running = call({"action": "status"})["session"]
+    check(restored_running["sessionID"] == long_id and restored_running["phase"] == "running"
+          and restored_running["durationSeconds"] == 25269
+          and 0 < restored_running["remainingSeconds"] <= resumed_long["remainingSeconds"],
+          "long running session restores its deadline after native relaunch")
+    tool("stop")
+    seconds_start = tool("start", {"seconds": 30})["structuredContent"]["session"]
+    check(seconds_start["durationSeconds"] == 30, "MCP starts with exact total seconds")
+    tool("stop")
+    saved_start = tool("start")["structuredContent"]["session"]
+    check(saved_start["durationSeconds"] == 25269, "MCP start without a duration uses the saved custom duration")
+    tool("stop")
+    custom_break = tool("break", {"duration": "01:09"})["structuredContent"]["session"]
+    check(custom_break["kind"] == "rest" and custom_break["durationSeconds"] == 69, "MCP break supports exact minutes and seconds")
+    tool("stop")
     started = tool("start", {"task": "Pomodoro integration test", "minutes": 1})["structuredContent"]
     check(started["session"]["phase"] == "running" and started["session"]["durationSeconds"] == 60, "MCP start controls native timer")
     time.sleep(0.25)
@@ -121,7 +167,7 @@ try:
     time.sleep(0.5)
     restored = call({"action": "status"})["session"]
     check(restored["sessionID"] == saved_id and restored["phase"] == "running", "running session restores after native relaunch")
-    check(restored["focusDurationSeconds"] == 1050, "custom focus duration preserves seconds after native relaunch")
+    check(restored["focusDurationSeconds"] == 25269, "custom focus duration preserves seconds after native relaunch")
     tool("stop")
     send({"action": "start", "task": "Task to keep for the break", "durationSeconds": 1})
     time.sleep(1.3)

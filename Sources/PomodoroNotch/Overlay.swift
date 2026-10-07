@@ -294,6 +294,7 @@ struct OverlayView: View {
             ZStack(alignment: .leading) {
                 Text(model.clock)
                     .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.5)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .opacity(1 - presentation.expansion).accessibilityHidden(model.expanded)
                     .accessibilityLabel("\(phaseName) timer").accessibilityValue(remainingDescription)
@@ -377,6 +378,7 @@ struct OverlayView: View {
 
     private var clockText: some View {
         Text(model.clock).font(.system(size: 44, weight: .regular)).monospacedDigit()
+            .lineLimit(1).minimumScaleFactor(0.5)
             .frame(height: 54)
             .accessibilityLabel("\(phaseName) timer").accessibilityValue(remainingDescription)
     }
@@ -434,7 +436,7 @@ struct OverlayView: View {
                     .accessibilityLabel("Set focus duration to \(minutes) minutes")
                 }
             }
-            Text(FocusDuration.parse(durationInput) == nil ? "Use mm:ss (00:01–180:00)" : "Minutes : seconds")
+            Text(FocusDuration.parse(durationInput) == nil ? "Use minutes or mm:ss (e.g. 421:09)" : "Minutes : seconds")
                 .font(.system(size: 11)).foregroundStyle(FocusDuration.parse(durationInput) == nil ? .orange : .white.opacity(0.65))
         }
         .padding(16).frame(width: 228)
